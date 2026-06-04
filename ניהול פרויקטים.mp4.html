@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swift Studio - CRM & Task Manager</title>
+<style>
+:root {
+    --accent: #d64c78;
+    --secondary: #25529a;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --bg: linear-gradient(135deg,#eef2ff,#fdf2f8,#ecfeff);
+    --sidebar-bg: #ffffff;
+    --text-dark: #1e293b;
+    --text-light: #64748b;
+    --border: #e2e8f0;
+}
+* { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text-dark); display: flex; height: 100vh; overflow: hidden; }
+
+/* ═══ SIDEBAR ═══ */
+.sidebar {
+    width: 360px; min-width: 360px; background: var(--sidebar-bg);
+    border-left: 1px solid var(--border); display: flex; flex-direction: column;
+    padding: 26px 20px; box-shadow: -10px 0 30px rgba(0,0,0,0.03);
+    z-index: 100; overflow-y: auto;
+}
+.brand h1 {
+    font-size: 24px; font-weight: 900; text-align: center;
+    background: linear-gradient(135deg, var(--accent), var(--secondary));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+}
+.brand p { text-align: center; font-size: 10px; letter-spacing: 4px; color: var(--text-light); margin: 3px 0 20px; font-weight: 700; }
+
+.section-title {
+    font-size: 12px; font-weight: 900; color: var(--secondary);
+    margin: 12px 0 10px; display: flex; align-items: center; gap: 6px;
+    border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; letter-spacing: 1px;
+}
+.control-group { background: #f8fafc; border: 1px solid var(--border); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+
+/* Progress Styling */
+.progress-container { margin: 10px 0 5px; }
+.progress-bar-bg { width: 100%; height: 8px; background: #e2e8f0; border-radius: 20px; overflow: hidden; position: relative; }
+.progress-bar-fill { width: 0%; height: 100%; background: linear-gradient(90deg, var(--secondary), var(--accent)); transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+.progress-text { display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; margin-bottom: 6px; }
+
+/* Filter Buttons */
+.filter-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 5px; }
+.filter-btn {
+    padding: 8px 4px; border: 1px solid var(--border); background: white;
+    border-radius: 8px; font-size: 11px; font-weight: 800; color: var(--text-light);
+    cursor: pointer; transition: 0.2s; text-align: center;
+}
+.filter-btn.active { background: var(--secondary); color: white; border-color: var(--secondary); }
+
+/* Buttons */
+.btn {
+    width: 100%; padding: 12px; border-radius: 12px; border: none; font-weight: 800;
+    cursor: pointer; transition: 0.2s; display: flex; align-items: center;
+    justify-content: center; gap: 8px; margin-bottom: 8px; font-size: 13px; font-family: inherit;
+}
+.btn-primary { background: var(--accent); color: white; box-shadow: 0 4px 12px rgba(214,76,120,0.2); }
+.btn-primary:hover { transform: translateY(-1px); filter: brightness(1.06); }
+.btn-secondary { background: var(--secondary); color: white; }
+.btn-secondary:hover { filter: brightness(1.08); }
+.btn-outline { background: white; color: var(--text-dark); border: 2px solid var(--border); }
+.btn-outline:hover { border-color: var(--text-light); }
+
+/* Footer */
+.footer { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); text-align: center; }
+.copy-info { font-size: 11px; font-weight: 700; color: var(--text-light); margin-bottom: 10px; display: block; line-height: 1.8; }
+.portfolio-link {
+    display: inline-block; padding: 10px 20px; background: linear-gradient(135deg, var(--secondary), #1d4ed8);
+    border-radius: 30px; color: white; text-decoration: none; box-shadow: 0 4px 10px rgba(37,82,154,0.15);
+    font-weight: 800; font-size: 11px; transition: 0.2s; border: none; letter-spacing: 0.5px;
+}
+.portfolio-link:hover { transform: translateY(-2px); filter: brightness(1.1); }
+
+/* ═══ WORKSPACE ═══ */
+.workspace {
+    flex: 1; display: flex; flex-direction: column; padding: 30px 40px;
+    position: relative; background: linear-gradient(135deg,#eef2ff 0%,#fdf2f8 50%,#ecfeff 100%);
+    overflow-y: auto; gap: 24px;
+}
+
+.workspace-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; }
+.workspace-title h2 { font-size: 26px; font-weight: 900; color: var(--text-dark); letter-spacing: -0.5px; }
+.workspace-title p { font-size: 14px; color: var(--text-light); font-weight: 600; margin-top: 4px; }
+
+/* ═══ HOME SCREEN ═══ */
+#homeView { display: flex; flex-direction: column; flex: 1; }
+.create-project-card {
+    background: white; border-radius: 20px; border: 1px solid var(--accent); padding: 24px;
+    box-shadow: 0 10px 30px rgba(214,76,120,0.08); display: flex; align-items: center; gap: 16px; margin-bottom: 30px;
+}
+.create-project-card h3 { color: var(--accent); font-size: 16px; min-width: max-content; }
+.input-minimal {
+    flex: 1; padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px;
+    font-size: 13px; font-weight: 600; outline: none; background: #f8fafc; transition: 0.2s;
+}
+.input-minimal:focus { border-color: var(--accent); background: white; }
+
+.clients-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+.client-card {
+    background: white; border: 1px solid var(--border); border-radius: 18px; padding: 22px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.02); cursor: pointer; transition: 0.2s;
+    position: relative; display: flex; flex-direction: column; gap: 14px;
+}
+.client-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.06); border-color: var(--secondary); }
+.client-card h3 { font-size: 18px; font-weight: 800; color: var(--text-dark); }
+.client-card p { font-size: 13px; color: var(--text-light); font-weight: 600; margin-top: -8px; }
+.client-card-meta { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 800; border-top: 1px solid #f1f5f9; padding-top: 12px; }
+.delete-client-btn { position: absolute; top: 18px; left: 18px; background: none; border: none; font-size: 14px; cursor: pointer; opacity: 0.2; transition: 0.2s; }
+.delete-client-btn:hover { opacity: 1; color: var(--danger); }
+
+/* ═══ CLIENT WORKSPACE ═══ */
+#clientWorkspaceView { display: none; flex-direction: column; flex: 1; height: 100%; }
+.panel-grid { display: grid; grid-template-columns: 1fr 1.3fr; gap: 24px; flex: 1; min-height: 0; }
+.card { background: white; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.03); display: flex; flex-direction: column; padding: 24px; }
+.card-title { font-size: 16px; font-weight: 800; color: var(--text-dark); margin-bottom: 16px; }
+
+/* Textarea & Inputs */
+textarea.brief-input {
+    width: 100%; flex: 1; min-height: 200px; padding: 18px; border: 1px solid var(--border);
+    border-radius: 14px; font-size: 14px; font-weight: 600; line-height: 1.7; outline: none;
+    resize: none; transition: 0.2s; background: #fafafa; color: var(--text-dark);
+}
+textarea.brief-input:focus { border-color: var(--secondary); background: white; box-shadow: 0 0 0 3px rgba(37,82,154,0.08); }
+
+/* Checklist Area */
+.checklist-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; color: var(--text-light); gap: 12px; opacity: 0.6; text-align: center; }
+
+/* Task Items with Advanced Status */
+.task-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+    background: white; border: 1px solid var(--border); border-radius: 14px;
+    transition: 0.2s; box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+.task-item:hover { border-color: #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
+/* כפתורי הסטטוס */
+.status-btn {
+    padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 800;
+    cursor: pointer; transition: 0.2s; border: 1px solid transparent; user-select: none; flex-shrink: 0; min-width: 75px; text-align: center;
+}
+.status-pending { background: #f1f5f9; color: var(--text-light); border-color: var(--border); }
+.status-progress { background: rgba(37,82,154,0.1); color: var(--secondary); border-color: var(--secondary); }
+.status-completed { background: var(--success); color: white; border-color: var(--success); }
+
+.task-text { flex: 1; font-size: 13px; font-weight: 600; color: var(--text-dark); outline: none; line-height: 1.4; transition: 0.2s; }
+.task-item.is-completed .task-text { color: var(--text-light); text-decoration: line-through; opacity: 0.6; }
+
+.priority-badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; cursor: pointer; user-select: none; }
+.p-high { background: rgba(239,68,68,0.1); color: var(--danger); }
+.p-medium { background: #f1f5f9; color: var(--text-light); }
+.p-low { background: rgba(37,82,154,0.1); color: var(--secondary); }
+
+.task-delete { background: none; border: none; color: #cbd5e1; font-size: 16px; cursor: pointer; padding: 4px; border-radius: 6px; transition: 0.2s; }
+.task-delete:hover { color: var(--danger); background: rgba(239,68,68,0.06); }
+
+/* Quick Add */
+.quick-add-form { display: flex; gap: 8px; margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px; }
+
+/* Toast */
+.toast {
+    position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--text-dark); color: white; padding: 12px 24px; border-radius: 30px;
+    font-size: 13px; font-weight: 700; z-index: 2000; transition: 0.3s cubic-bezier(.34,1.56,.64,1);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15); pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+
+<style>
+.login-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;justify-content:center;align-items:center;z-index:99999}
+.login-box{background:white;padding:30px;border-radius:20px;width:420px;max-width:95%}
+.login-box input{width:100%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:10px}
+.error-msg{color:red;font-size:13px;height:20px}
+.user-panel{
+position:fixed;right:15px;bottom:15px;width:70px;height:70px;overflow:hidden;
+z-index:9999;border-radius:24px;
+background:linear-gradient(135deg,#25529a,#d64c78,#7c3aed);
+color:white;padding:16px;transition:.35s;
+box-shadow:0 15px 35px rgba(0,0,0,.22)
+}
+.user-panel:hover{width:320px;height:auto}
+.user-panel .profile-mini{font-size:28px;text-align:center}
+.user-panel .profile-content{opacity:0;margin-top:10px;line-height:1.9}
+.user-panel:hover .profile-content{opacity:1}
+</style>
+</head>
+<body>
+<div id="loginOverlay" class="login-overlay">
+<div class="login-box">
+<h2>🔐 התחברות למערכת</h2><p style="font-size:12px;color:#64748b">נדרשת סיסמה להתחברות</p>
+<input id="usernameInput" placeholder="שם משתמש">
+<input id="passwordInput" type="password" placeholder="סיסמה">
+<div class="error-msg" id="loginError"></div>
+<button class="btn btn-primary" onclick="loginUser()">כניסה</button>
+<div style="margin-top:15px;text-align:center;font-size:13px;color:#64748b">
+רוצה לקבל גישה לכלי?<br>
+דברי איתי במייל: <b>SWIFT84529@GMAIL.COM</b>
+</div>
+</div></div>
+
+
+<div class="toast" id="toast"></div>
+
+<aside class="sidebar">
+    <div class="brand">
+        <h1>SWIFT STUDIO</h1>
+        <p>TASK HUB V3.0</p>
+    </div>
+
+    <div id="sidebarActiveClientPanel" style="display:none;">
+        <button class="btn btn-outline" id="btnGoHome" style="margin-bottom:20px;">🏠 חזרה ללוח הראשי</button>
+
+        <div class="control-group">
+            <span class="section-title">📊 סטטיסטיקת פרויקט</span>
+            <div class="progress-container">
+                <div class="progress-text">
+                    <span>הושלם</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progressBar"></div>
+                </div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; color:var(--text-light); margin-top:8px;">
+                <span>סה"כ משימות: <b id="statTotal" style="color:var(--text-dark)">0</b></span>
+                <span>בביצוע: <b id="statProgress" style="color:var(--secondary)">0</b></span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <span class="section-title">🔍 תצוגת משימות</span>
+            <div class="filter-row">
+                <div class="filter-btn active" data-filter="all">הכל</div>
+                <div class="filter-btn" data-filter="pending">ממתין ⏳</div>
+                <div class="filter-btn" data-filter="progress">בביצוע 🚀</div>
+                <div class="filter-btn" data-filter="completed">הושלם ✅</div>
+            </div>
+        </div>
+
+        <span class="section-title">💾 ייצוא ושמירה</span>
+        <button class="btn btn-secondary" id="btnCopyList">📋 העתק תוכנית עבודה</button>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+            <button class="btn btn-outline" id="btnExportTxt" style="flex:1; font-size:11px; padding:10px;">📄 קובץ טקסט</button>
+            <button class="btn btn-outline" id="btnClearAll" style="flex:1; font-size:11px; padding:10px; color:var(--danger); border-color:var(--danger);">🗑️ מחיקת משימות</button>
+        </div>
+    </div>
+
+    <div id="sidebarHomePanel" class="control-group" style="text-align:center; font-size:13px; color:var(--text-light); font-weight:600; padding:30px 15px; line-height:1.6;">
+        ברוכה הבאה למערכת ניהול הפרויקטים.<br><br>צרי פרויקט חדש או בחרי לקוח מהרשימה כדי להתחיל לזקק בקשות למשימות.
+    </div>
+
+    <div class="footer">
+        <a href="https://portfolio.swiftstudio.co.il" target="_blank" class="portfolio-link">🌐 כניסה לתיק העבודות שלי</a>
+        <span class="copy-info" style="margin-top:15px;">© 2026 Swift Studio • כל הזכויות שמורות</span>
+    </div>
+</aside>
+
+<main class="workspace">
+
+    <div id="homeView">
+        <div class="workspace-header" style="margin-bottom: 24px;">
+            <div class="workspace-title">
+                <h2>לוח בקרה ראשי</h2>
+                <p>ניהול כל הפרויקטים והלקוחות של הסטודיו במקום אחד.</p>
+            </div>
+        </div>
+
+        <div class="create-project-card">
+            <h3>✨ פרויקט חדש</h3>
+            <input type="text" id="newClientInput" class="input-minimal" placeholder="שם הלקוח (לדוגמה: בוטיק דניאל)">
+            <input type="text" id="newProjectInput" class="input-minimal" placeholder="שם הפרויקט (לדוגמה: מיתוג ואתר)">
+            <button class="btn btn-primary" id="btnCreateClient" style="width:auto; margin:0; padding:12px 24px;">צרי והתחילי עבודה</button>
+        </div>
+
+        <div class="clients-grid" id="clientsGrid">
+            </div>
+    </div>
+
+    <div id="clientWorkspaceView">
+        <div class="workspace-header" style="margin-bottom: 24px;">
+            <div class="workspace-title">
+                <h2 id="viewProjectTitle">שם הפרויקט</h2>
+                <p>לקוח: <span id="viewClientName" style="color:var(--accent); font-weight:800;">שם הלקוח</span></p>
+            </div>
+        </div>
+
+        <div class="panel-grid">
+            <div class="card">
+                <div class="card-title">📝 בקשות הלקוח הגולמיות</div>
+                <textarea class="brief-input" id="rawBrief" placeholder="הדביקי כאן את פניית הלקוח, המייל או הודעת הטקסט...&#10;&#10;לחצי על כפתור העיבוד למטה, והמערכת תהפוך את הבלגן לתוכנית עבודה מסודרת וברורה."></textarea>
+                <button class="btn btn-primary" id="btnProcess" style="margin-top:16px;">✨ עבדי את הטקסט לתוכנית עבודה</button>
+            </div>
+
+            <div class="card">
+                <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>✅ תוכנית עבודה וסטטוסים</span>
+                </div>
+                
+                <div class="checklist-container" id="checklistContainer">
+                    </div>
+
+                <div class="quick-add-form">
+                    <input type="text" id="manualTaskInput" class="input-minimal" placeholder="+ הוספת משימה ידנית (לחצי אנטר)..." style="margin-bottom:0; background:white;">
+                    <button class="btn btn-secondary" id="btnManualAdd" style="width:auto; margin:0; padding:0 20px;">הוסף</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<script>
+// ══════════════════════════════════════════
+//  DATA STATE 
+//  Status options: 'pending', 'progress', 'completed'
+// ══════════════════════════════════════════
+let clients = [
+    {
+        id: "1", clientName: "סטודיו גלוו", projectTitle: "עיצוב דף נחיתה וסושיאל", rawBrief: "",
+        tasks: [
+            { id: 1, text: "תבניות לפוסטים בצבעי זהב ושחור", status: "pending", priority: "medium" },
+            { id: 2, text: "עיצוב דף נחיתה", status: "progress", priority: "high" },
+            { id: 3, text: "איסוף חומרים מהלקוח", status: "completed", priority: "low" }
+        ]
+    }
+];
+
+
+function saveProjects(){
+ localStorage.setItem('clientsData',JSON.stringify(clients));
+}
+function loadProjects(){
+ const d=localStorage.getItem('clientsData');
+ if(d){try{clients=JSON.parse(d);}catch(e){}}
+}
+
+let activeClientId = null;
+let currentFilter = 'all';
+
+// DOM Elements
+const homeView = document.getElementById('homeView');
+const clientWorkspaceView = document.getElementById('clientWorkspaceView');
+const clientsGrid = document.getElementById('clientsGrid');
+const sidebarHomePanel = document.getElementById('sidebarHomePanel');
+const sidebarActiveClientPanel = document.getElementById('sidebarActiveClientPanel');
+
+const viewClientName = document.getElementById('viewClientName');
+const viewProjectTitle = document.getElementById('viewProjectTitle');
+const rawBrief = document.getElementById('rawBrief');
+const checklistContainer = document.getElementById('checklistContainer');
+const toast = document.getElementById('toast');
+
+function showToast(msg) {
+    toast.textContent = msg; toast.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// ══════════════════════════════════════════
+//  NAVIGATION 
+// ══════════════════════════════════════════
+function init() {
+    loadProjects();
+    saveProjects();
+    renderHomeDashboard();
+    document.getElementById('btnGoHome').onclick = goToHome;
+}
+
+function goToHome() {
+    activeClientId = null;
+    homeView.style.display = 'flex';
+    clientWorkspaceView.style.display = 'none';
+    sidebarHomePanel.style.display = 'block';
+    sidebarActiveClientPanel.style.display = 'none';
+    saveProjects();
+    renderHomeDashboard();
+}
+
+function openClientWorkspace(clientId) {
+    activeClientId = clientId;
+    const client = clients.find(c => c.id === clientId);
+    if (!client) return;
+
+    homeView.style.display = 'none';
+    clientWorkspaceView.style.display = 'flex';
+    sidebarHomePanel.style.display = 'none';
+    sidebarActiveClientPanel.style.display = 'block';
+
+    viewClientName.textContent = client.clientName;
+    viewProjectTitle.textContent = client.projectTitle;
+    rawBrief.value = client.rawBrief || '';
+
+    // Reset filter
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.filter-btn[data-filter="all"]').classList.add('active');
+    currentFilter = 'all';
+
+    renderChecklist();
+}
+
+// ══════════════════════════════════════════
+//  HOME DASHBOARD 
+// ══════════════════════════════════════════
+function renderHomeDashboard() {
+    clientsGrid.innerHTML = '';
+    
+    if (clients.length === 0) {
+        clientsGrid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-light); padding: 40px; font-weight:700;">אין פרויקטים פעילים. צרי פרויקט חדש למעלה ☝️</div>`;
+        return;
+    }
+
+    clients.forEach(client => {
+        const total = client.tasks.length;
+        const done = client.tasks.filter(t => t.status === 'completed').length;
+        const inProgress = client.tasks.filter(t => t.status === 'progress').length;
+        const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+
+        const card = document.createElement('div');
+        card.className = 'client-card';
+        card.onclick = () => openClientWorkspace(client.id);
+
+        card.innerHTML = `
+            <button class="delete-client-btn" title="מחק פרויקט">🗑️</button>
+            <h3>${client.projectTitle}</h3>
+            <p>${client.clientName}</p>
+            <div style="margin-top: 5px;">
+                <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:800; margin-bottom:6px;">
+                    <span>התקדמות פרויקט</span>
+                    <span>${percent}%</span>
+                </div>
+                <div class="progress-bar-bg" style="height:6px;">
+                    <div class="progress-bar-fill" style="width: ${percent}%;"></div>
+                </div>
+            </div>
+            <div class="client-card-meta">
+                <span style="color:var(--text-light)">📋 ${total} משימות</span>
+                ${inProgress > 0 ? `<span style="color:var(--secondary)">🚀 ${inProgress} בביצוע</span>` : ''}
+                ${done > 0 ? `<span style="color:var(--success)">✅ ${done} הושלמו</span>` : ''}
+            </div>
+        `;
+
+        card.querySelector('.delete-client-btn').onclick = (e) => {
+            e.stopPropagation();
+            if (confirm(`האם למחוק את פרויקט "${client.projectTitle}"?`)) {
+                clients = clients.filter(c => c.id !== client.id);
+                saveProjects();
+    renderHomeDashboard();
+                showToast('🗑️ הפרויקט נמחק');
+            }
+        };
+
+        clientsGrid.appendChild(card);
+    });
+}
+
+document.getElementById('btnCreateClient').onclick = () => {
+    const nameVal = document.getElementById('newClientInput').value.trim();
+    const projVal = document.getElementById('newProjectInput').value.trim();
+
+    if (!nameVal || !projVal) {
+        showToast('⚠️ אנא מלאי את שם הלקוח ושם הפרויקט');
+        return;
+    }
+
+    clients.unshift({
+        id: Date.now().toString(),
+        clientName: nameVal,
+        projectTitle: projVal,
+        rawBrief: '',
+        tasks: []
+    });
+
+    document.getElementById('newClientInput').value = '';
+    document.getElementById('newProjectInput').value = '';
+    saveProjects();
+    renderHomeDashboard();
+    showToast('✨ פרויקט חדש נוצר בהצלחה!');
+};
+
+// ══════════════════════════════════════════
+//  WORKSPACE CHECKLIST
+// ══════════════════════════════════════════
+function getActiveClient() { return clients.find(c => c.id === activeClientId); }
+
+function getStatusConfig(status) {
+    if (status === 'progress') return { class: 'status-progress', text: 'בביצוע 🚀' };
+    if (status === 'completed') return { class: 'status-completed', text: 'הושלם ✅' };
+    return { class: 'status-pending', text: 'ממתין ⏳' };
+}
+
+function nextStatus(status) {
+    if (status === 'pending') return 'progress';
+    if (status === 'progress') return 'completed';
+    return 'pending';
+}
+
+function renderChecklist() {
+    const client = getActiveClient();
+    if (!client) return;
+
+    const filteredTasks = client.tasks.filter(t => {
+        if (currentFilter === 'all') return true;
+        return t.status === currentFilter;
+    });
+
+    checklistContainer.innerHTML = '';
+
+    if (filteredTasks.length === 0) {
+        checklistContainer.innerHTML = `
+            <div class="empty-state">
+                <div style="font-size:36px; margin-bottom:5px;">📋</div>
+                <div style="font-weight:800; font-size:15px; color:var(--text-dark);">אין משימות בתצוגה זו</div>
+                <div style="font-size:13px;">הדביקי טקסט מהלקוח ולחצי על עיבוד כדי להתחיל.</div>
+            </div>`;
+    } else {
+        filteredTasks.forEach(task => {
+            const item = document.createElement('div');
+            item.className = `task-item ${task.status === 'completed' ? 'is-completed' : ''}`;
+            
+            const stConf = getStatusConfig(task.status);
+            
+            let pClass = 'p-medium', pText = 'רגיל';
+            if (task.priority === 'high') { pClass = 'p-high'; pText = 'דחוף 🔥'; }
+            if (task.priority === 'low') { pClass = 'p-low'; pText = 'נמוך'; }
+
+            item.innerHTML = `
+                <div class="status-btn ${stConf.class}">${stConf.text}</div>
+                <div class="task-text" contenteditable="true">${task.text}</div>
+                <span class="priority-badge ${pClass}">${pText}</span>
+                <button class="task-delete" title="מחק">✖</button>
+            `;
+
+            // לחיצה על סטטוס מחליפה מצב
+            item.querySelector('.status-btn').onclick = () => {
+                task.status = nextStatus(task.status);
+                renderChecklist();
+            };
+
+            // שינוי עדיפות
+            item.querySelector('.priority-badge').onclick = () => {
+                if (task.priority === 'medium') task.priority = 'high';
+                else if (task.priority === 'high') task.priority = 'low';
+                else task.priority = 'medium';
+                renderChecklist();
+            };
+
+            item.querySelector('.task-text').onblur = (e) => {
+                task.text = e.target.textContent.trim();
+            };
+
+            item.querySelector('.task-delete').onclick = () => {
+                client.tasks = client.tasks.filter(t => t.id !== task.id);
+                renderChecklist();
+            };
+
+            checklistContainer.appendChild(item);
+        });
+    }
+
+    updateCalculations();
+}
+
+// אלגוריתם הפירוק
+document.getElementById('btnProcess').onclick = () => {
+    const client = getActiveClient();
+    if (!client) return;
+
+    const text = rawBrief.value.trim();
+    if (!text) { showToast('⚠️ הקלידי או הדביקי טקסט תחילה'); return; }
+    
+    client.rawBrief = text;
+
+    const lines = text.split(/\n+|\. /);
+    const newTasks = [];
+    const skipKeywords = ['היי', 'שלום', 'בוקר טוב', 'בברכה', 'תודה', 'אשמח'];
+
+    lines.forEach(line => {
+        let cleanLine = line.replace(/^[\s\-\*•\d\.\,]+/g, '').trim();
+        if (cleanLine.length < 5) return;
+
+        let shouldSkip = skipKeywords.some(word => cleanLine.startsWith(word) && cleanLine.length < 25);
+        if (shouldSkip) return;
+
+        let priority = 'medium';
+        if (cleanLine.includes('דחוף') || cleanLine.includes('קריטי') || cleanLine.includes('חשוב')) priority = 'high';
+        else if (cleanLine.includes('לא לחוץ') || cleanLine.includes('בהמשך')) priority = 'low';
+
+        newTasks.push({
+            id: Date.now() + Math.random(),
+            text: cleanLine,
+            status: 'pending',
+            priority: priority
+        });
+    });
+
+    client.tasks = [...client.tasks, ...newTasks];
+    renderChecklist();
+    showToast(`✨ המערכת זיקקה ${newTasks.length} משימות חדשות!`);
+};
+
+function updateCalculations() {
+    const client = getActiveClient();
+    if (!client) return;
+
+    const total = client.tasks.length;
+    const done = client.tasks.filter(t => t.status === 'completed').length;
+    const prog = client.tasks.filter(t => t.status === 'progress').length;
+    const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+
+    document.getElementById('progressBar').style.width = `${percent}%`;
+    document.getElementById('progressPercent').textContent = `${percent}%`;
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statProgress').textContent = prog;
+}
+
+// הוספה ידנית
+const manualInput = document.getElementById('manualTaskInput');
+function addManual() {
+    const client = getActiveClient();
+    const val = manualInput.value.trim();
+    if (!client || !val) return;
+    client.tasks.push({ id: Date.now(), text: val, status: 'pending', priority: 'medium' });
+    manualInput.value = '';
+    renderChecklist();
+}
+document.getElementById('btnManualAdd').onclick = addManual;
+manualInput.onkeydown = (e) => { if(e.key === 'Enter') addManual(); };
+
+// פילטרים
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.onclick = () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        renderChecklist();
+    };
+});
+
+document.getElementById('btnClearAll').onclick = () => {
+    const client = getActiveClient();
+    if (client && confirm('האם למחוק את כל המשימות? הפעולה בלתי הפיכה.')) {
+        client.tasks = []; renderChecklist();
+    }
+};
+
+// ייצוא טקסט
+document.getElementById('btnCopyList').onclick = () => {
+    const client = getActiveClient();
+    if (!client || client.tasks.length === 0) return;
+    let str = `📋 פרויקט: ${client.projectTitle} | לקוח: ${client.clientName}\n\n`;
+    client.tasks.forEach(t => { 
+        let mark = t.status === 'completed' ? '✅' : (t.status === 'progress' ? '🚀' : '⏳');
+        str += `${mark} ${t.text}\n`; 
+    });
+    navigator.clipboard.writeText(str);
+    showToast('📋 הרשימה הועתקה ללוח!');
+};
+
+document.getElementById('btnExportTxt').onclick = () => {
+    const client = getActiveClient();
+    if (!client || client.tasks.length === 0) return;
+    let str = `פרויקט: ${client.projectTitle}\nלקוח: ${client.clientName}\n\n`;
+    client.tasks.forEach(t => { 
+        let mark = t.status === 'completed' ? '[V]' : (t.status === 'progress' ? '[>]' : '[ ]');
+        str += `${mark} ${t.text}\n`; 
+    });
+    const blob = new Blob([str], { type: 'text/plain;charset=utf-8' });
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
+    link.download = `${client.clientName}_Tasks.txt`; link.click();
+};
+
+
+//AUTH
+const MASTER_PASSWORD="ניהולפרויקטים";
+let userData={};
+function getUserStats(){
+ let d=JSON.parse(localStorage.getItem("userData")||"{}");
+ return d;
+}
+function loginUser(){
+ const u=usernameInput.value.trim();
+ const p=passwordInput.value.trim();
+ if(!u)return loginError.innerText="שם משתמש חובה";
+ if(p!==MASTER_PASSWORD){loginError.innerText="סיסמה שגויה";return;}
+ let d=getUserStats();
+ let now=Date.now();
+ if(!d.username){
+  d={username:u,firstLogin:now,lastLogin:now,loginCount:1,totalTime:0,status:"פעיל",achievements:0};
+ } else {
+  d.lastLogin=now; d.loginCount++;
+ }
+ d.lastActive=now;
+ localStorage.setItem("userData",JSON.stringify(d));
+ userData=d;
+ loginOverlay.style.display='none';
+ renderUserPanel();
+}
+function checkAuth(){
+ let d=getUserStats();
+ if(d.lastActive && (Date.now()-d.lastActive)<2592000000){
+   userData=d;
+   loginOverlay.style.display='none';
+   renderUserPanel();
+ }else loginOverlay.style.display='flex';
+}
+function logout(){
+ if(confirm('האם אתה בטוח שברצונך לצאת מהמערכת? הפרויקטים והנתונים שלך לא יימחקו.')){
+   let d=JSON.parse(localStorage.getItem("userData")||"{}");
+   d.lastActive=0;
+   localStorage.setItem("userData",JSON.stringify(d));
+   location.reload();
+ }
+}
+function resetAll(){
+ if(confirm('⚠️ האם אתה בטוח שברצונך לאפס את המערכת? פעולה זו תמחק את כל הפרויקטים ולא ניתן יהיה לשחזר אותם.')){
+   localStorage.clear();
+   location.reload();
+ }
+}
+function renderUserPanel(){
+ let lvl=Math.floor(userData.loginCount/5)+1;
+ let progress=Math.min(userData.loginCount*10,100);
+ sidebarHomePanel.insertAdjacentHTML('beforebegin',`
+<div class='user-panel'>
+<div class='profile-mini'>👤</div>
+<div class='profile-content'>
+<b>👤 ${userData.username}</b><br>
+כניסה ראשונה: ${new Date(userData.firstLogin).toLocaleDateString()}<br>
+כניסה אחרונה: ${new Date(userData.lastLogin).toLocaleDateString()}<br>
+מספר כניסות: ${userData.loginCount}<br>
+סטטוס: ${userData.status}<br>
+דרגה: ${lvl}<br>
+הישגים: ${userData.achievements}<br>
+מד התקדמות: ${progress}%<br><br>
+<button class="btn btn-outline" onclick="logout()">יציאה מהמערכת</button>
+<button class="btn btn-outline" onclick="resetAll()">איפוס מערכת</button>
+<div style="font-size:11px;margin-top:8px;color:#64748b">
+פעולה זו תנתק אותך מהמערכת בלבד. הפרויקטים והנתונים שלך יישארו ללא שינוי ולא יימחקו.<br><br>
+פעולה זו תאפס את כל הפרויקטים ותמחק את הנתונים הקשורים אליהם. לא ניתן לשחזר את המידע לאחר האיפוס.
+</div>
+</div>
+</div>`)
+}
+checkAuth();
+init();
+</script>
+</body>
+</html>
+<!-- Injection By NetFree -->
+<script src="https://netfree.link/injection-script/note-in-site.js" type="text/javascript" async  id="netfree-note-site" jsondata="%7B%22noteSite%22:%22%D7%9B%D7%93%D7%99%20%D7%A9%D7%94%D7%AA%D7%9E%D7%95%D7%A0%D7%95%D7%AA%20%D7%91%D7%90%D7%AA%D7%A8%20%D7%94%D7%96%D7%94%20%D7%99%D7%97%D7%96%D7%A8%D7%95%20%D7%9E%D7%91%D7%93%D7%99%D7%A7%D7%94%2C%20%D7%99%D7%A9%20%D7%9C%D7%94%D7%92%D7%93%D7%99%D7%A8%20%5C%22%D7%90%D7%A4%D7%A9%D7%A8%20%D7%9C%D7%A1%D7%A0%D7%9F%20%D7%AA%D7%95%D7%9B%D7%9F%20%D7%A9%D7%99%D7%93%D7%95%D7%A2%20%D7%9B%D7%90%D7%99%D7%A9%D7%99%20%D7%90%D7%95%20%D7%A4%D7%A8%D7%98%D7%99%5C%22%20%D7%91%D7%94%D7%92%D7%93%D7%A8%D7%95%D7%AA%20%D7%A1%D7%99%D7%A0%D7%95%D7%9F%20%5B%5B%D7%A6%D7%90%D7%98_AI_%D7%91%D7%A0%D7%98%D7%A4%D7%A8%D7%99%7C%D7%94%D7%99%D7%9B%D7%A0%D7%A1%D7%95%20%D7%9C%D7%9B%D7%90%D7%9F%20%D7%9C%D7%94%D7%A1%D7%91%D7%A8%20%D7%9E%D7%A4%D7%95%D7%A8%D7%98%5D%5D%22%2C%22noteSiteEn%22:%22For%20images%20on%20this%20website%20to%20work%20you%20need%20to%20set%20%5C%22Filter%20content%20that%20is%20known%20as%20personal%20or%20private%5C%22%20%5B%5BAI_Chats_in_NetFree%7CClick%20here%20to%20read%20more%5D%5D%22%7D"></script><script src="//netfree.link/injection-script/go-payment.js" type="text/javascript" async ></script>
+<script src="//netfree.link/injection-script/popup-card-init.js" type="text/javascript" async ></script>
+
+<!-- Injection By NetFree -->
+<script src="https://netfree.link/injection-script/note-in-site.js" type="text/javascript" async  id="netfree-note-site" jsondata="%7B%22noteSite%22:%22%D7%9B%D7%93%D7%99%20%D7%A9%D7%94%D7%AA%D7%9E%D7%95%D7%A0%D7%95%D7%AA%20%D7%91%D7%90%D7%AA%D7%A8%20%D7%94%D7%96%D7%94%20%D7%99%D7%97%D7%96%D7%A8%D7%95%20%D7%9E%D7%91%D7%93%D7%99%D7%A7%D7%94%2C%20%D7%99%D7%A9%20%D7%9C%D7%94%D7%92%D7%93%D7%99%D7%A8%20%5C%22%D7%90%D7%A4%D7%A9%D7%A8%20%D7%9C%D7%A1%D7%A0%D7%9F%20%D7%AA%D7%95%D7%9B%D7%9F%20%D7%A9%D7%99%D7%93%D7%95%D7%A2%20%D7%9B%D7%90%D7%99%D7%A9%D7%99%20%D7%90%D7%95%20%D7%A4%D7%A8%D7%98%D7%99%5C%22%20%D7%91%D7%94%D7%92%D7%93%D7%A8%D7%95%D7%AA%20%D7%A1%D7%99%D7%A0%D7%95%D7%9F%20%5B%5B%D7%A6%D7%90%D7%98_AI_%D7%91%D7%A0%D7%98%D7%A4%D7%A8%D7%99%7C%D7%94%D7%99%D7%9B%D7%A0%D7%A1%D7%95%20%D7%9C%D7%9B%D7%90%D7%9F%20%D7%9C%D7%94%D7%A1%D7%91%D7%A8%20%D7%9E%D7%A4%D7%95%D7%A8%D7%98%5D%5D%22%2C%22noteSiteEn%22:%22For%20images%20on%20this%20website%20to%20work%20you%20need%20to%20set%20%5C%22Filter%20content%20that%20is%20known%20as%20personal%20or%20private%5C%22%20%5B%5BAI_Chats_in_NetFree%7CClick%20here%20to%20read%20more%5D%5D%22%7D"></script><script src="//netfree.link/injection-script/go-payment.js" type="text/javascript" async ></script>
+<script src="//netfree.link/injection-script/popup-card-init.js" type="text/javascript" async ></script>
